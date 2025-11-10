@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 
 const API_KEY = process.env.API_KEY;
@@ -8,21 +9,30 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-// New cover letter template inspired by the user's example
-const coverLetterTemplate = `Hi there,
+// New cover letter template inspired by the user's provided structure
+const coverLetterTemplate = `{{SPINTAX:Hi|Hello|Hi there}} {{AI_CLIENT_NAME}},
 
-The job caught my immediate attention as I have extensive experience in [EXPERIENCE_HOOK].
+This project {{SPINTAX:caught my attention|stood out to me|immediately interested me}} as I have hands-on experience working on similar projects in the past. {{SPINTAX:For instance, I recently worked on|Recently, I completed|Previously, I delivered}} {{AI_PROJECT_EXAMPLE}} which aligns closely with what you're looking for.
+You can check the website here: [Your Project Link Here]
 
-I've reviewed your requirements and understand you're looking for an expert to [PROJECT_SUMMARY]. My goal is to create a final product that is [PROJECT_QUALITIES].
+I understand that you are aiming to {{SPINTAX:create|build|develop}} a website that {{AI_PROJECT_GOAL}}. The focus will be to maintain a {{SPINTAX:modern|clean|minimalist}} aesthetic that is visually cohesive and {{SPINTAX:easy to navigate|intuitive|structured for clarity}}.
 
-As a [ROLE] with over [YEARS] years of experience, I specialize in [FOCUSED_EXPERIENCE]. I prioritize [PROCESS_HIGHLIGHT] to deliver results that meet and exceed expectations. You'll get a clean, modern, and user-friendly result.
+I will be a strong match for this project as I specialize in designing and developing Webflow websites and SaaS platforms with clean visual hierarchy, component-based structure, and fully responsive layouts. I ensure the build is scalable, easy to maintain, and simple to update via the Webflow Editor or CMS panel.
 
-You can check a relevant project here:
-(Add a link to a relevant project)
+I also create consistent design systems, spacing scales, and reusable components that support a clear and polished brand identity. My workflow focuses on thoughtful layout planning, balanced visual rhythm, and refined micro-interactions that elevate the user experience.
 
-I am ready to move forward and am looking forward to hearing from you.
+{{SPINTAX:Portfolio|Recent Work}}: [Your Portfolio Link Here]
 
-Thanks,`;
+You will receive a {{SPINTAX:fast-loading|high-performing|smooth}} and modern website that looks professional, feels great to use, and is easy to manage going forward.
+
+Thanks,
+{{SPINTAX:Your Name|Asif}}`;
+
+// Helper to process {{SPINTAX:...}} blocks by randomly selecting an option
+const processSpintax = (text: string): string => {
+    const options = text.split('|');
+    return options[Math.floor(Math.random() * options.length)];
+};
 
 
 // Helper function to make individual API calls for text generation
@@ -32,8 +42,8 @@ const generatePart = async (prompt: string): Promise<string> => {
             model: 'gemini-2.5-flash',
             contents: prompt,
         });
-        // Trim and remove any trailing period for smoother sentence integration
-        return response.text.trim().replace(/\.$/, '');
+        // Trim and remove any problematic characters like quotes for cleaner integration
+        return response.text.trim().replace(/^"|"$/g, '');
     } catch (error) {
         console.error("Error calling Gemini API for a part:", error);
         throw new Error("Failed to generate a part of the cover letter.");
@@ -42,63 +52,52 @@ const generatePart = async (prompt: string): Promise<string> => {
 
 // Main function to generate the full cover letter
 export const generateCoverLetter = async (jobDescription: string): Promise<string> => {
-    // 1. Prompt to identify the technology and role for context
-    const platformPrompt = `Analyze the following job description. Identify the primary technology (e.g., Webflow, Shopify, React.js, Next.js, Figma to Web). Respond with the technology name and the appropriate title.
-- For Webflow, Shopify, Wix, Squarespace, Framer: use "Developer".
-- For React.js: use "Developer".
-- For Next.js: use "Front-End Specialist".
-Respond with ONLY the technology name and title, separated by a comma. Example: "Webflow,Developer" or "Next.js,Front-End Specialist". If none are clear, default to "Web,Developer".
+    // 1. Define prompts for AI-driven parts of the template
+    const clientNamePrompt = `Analyze the following Upwork job description to find the client's first name. If a name is clearly mentioned (e.g., "My name is Jane," or a sign-off like "Thanks, John"), respond with ONLY that name. If no name is found, respond with the single word "there".
 
 Job Description:
 ${jobDescription}`;
-    
-    const platformAndRole = await generatePart(platformPrompt);
-    let [platform, title] = platformAndRole.split(',');
-    if (!platform || !title) { // Fallback
-        platform = 'Web';
-        title = 'Developer';
-    }
-    const role = `${platform} ${title}`; // e.g., "Webflow Developer"
 
-    // 2. Prompts for other dynamic parts based on the new template
-    const experienceHookPrompt = `Based on the job description for a "${role}", write a compelling opening sentence hook about relevant experience. Example: "building high-performance, custom Webflow sites for tech startups." Keep it concise and under 20 words.\n\nJob Description:\n${jobDescription}`;
-    
-    const projectSummaryPrompt = `Based on the job description, summarize the core task for the freelancer. Example: "develop a responsive and interactive marketing website from your Figma designs." Keep it under 25 words.\n\nJob Description:\n${jobDescription}`;
+    const projectExamplePrompt = `Based on the following job description, create a very short, one-sentence example of a similar, relevant project. Be specific and concise. For example, if the job is for a Webflow marketing site, respond with "a responsive marketing website for a SaaS startup." Do not add any preamble like "I recently worked on". Just state the project. Keep it under 20 words.
 
-    const projectQualitiesPrompt = `From the job description, identify 2-3 key qualities the final product should have. Example: "engaging, easy to navigate, and optimized for mobile." Keep it under 15 words.\n\nJob Description:\n${jobDescription}`;
-    
-    const yearsPrompt = `Based on a typical senior freelancer profile for a "${role}", suggest a plausible number for years of experience. Respond with only a number between 5 and 10.`;
+Job Description:
+${jobDescription}`;
 
-    const focusedExperiencePrompt = `For a "${role}", describe a focused area of specialization relevant to the job description. Example: "creating pixel-perfect, CMS-driven websites that are optimized for performance and SEO." Keep it under 25 words.\n\nJob Description:\n${jobDescription}`;
+    const projectGoalPrompt = `Based on the following job description, summarize the client's main goal for this project in one clear sentence. Start the sentence with a verb. Example: "build a visually appealing and easy-to-manage Webflow site for their new product." Do not add any preamble. Keep it under 25 words.
 
-    const processHighlightPrompt = `For a "${role}", briefly describe a key part of your work process that highlights quality. Example: "writing clean, semantic code and ensuring a seamless user experience across all devices." Keep it under 20 words.\n\nJob Description:\n${jobDescription}`;
+Job Description:
+${jobDescription}`;
 
-    // Generate all parts in parallel
+    // 2. Generate all AI parts in parallel for efficiency
     const [
-        experienceHook,
-        projectSummary,
-        projectQualities,
-        years,
-        focusedExperience,
-        processHighlight,
+        clientName,
+        projectExample,
+        projectGoal,
     ] = await Promise.all([
-        generatePart(experienceHookPrompt),
-        generatePart(projectSummaryPrompt),
-        generatePart(projectQualitiesPrompt),
-        generatePart(yearsPrompt),
-        generatePart(focusedExperiencePrompt),
-        generatePart(processHighlightPrompt),
+        generatePart(clientNamePrompt),
+        generatePart(projectExamplePrompt),
+        generatePart(projectGoalPrompt),
     ]);
-    
-    // Assemble the final letter by replacing placeholders
-    const finalLetter = coverLetterTemplate
-        .replace('[EXPERIENCE_HOOK]', experienceHook)
-        .replace('[PROJECT_SUMMARY]', projectSummary)
-        .replace('[PROJECT_QUALITIES]', projectQualities)
-        .replace('[ROLE]', role)
-        .replace('[YEARS]', years)
-        .replace('[FOCUSED_EXPERIENCE]', focusedExperience)
-        .replace('[PROCESS_HIGHLIGHT]', processHighlight);
+
+    // 3. Create a map of AI-generated content for replacement
+    const replacements = {
+        'AI_CLIENT_NAME': clientName,
+        'AI_PROJECT_EXAMPLE': projectExample,
+        'AI_PROJECT_GOAL': projectGoal,
+    };
+
+    // 4. Process the template, replacing all placeholders
+    const finalLetter = coverLetterTemplate.replace(/{{\s*(.*?)\s*}}/g, (match, content) => {
+        if (content.startsWith('SPINTAX:')) {
+            const spintaxContent = content.substring('SPINTAX:'.length);
+            return processSpintax(spintaxContent);
+        }
+        if (replacements[content as keyof typeof replacements]) {
+            return replacements[content as keyof typeof replacements];
+        }
+        // Fallback for any unrecognized placeholders
+        return match;
+    });
 
     return finalLetter;
 };
