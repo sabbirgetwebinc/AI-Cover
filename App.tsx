@@ -4,14 +4,15 @@ import { ClipboardIcon, CheckIcon, SparklesIcon, XCircleIcon, ArrowPathIcon } fr
 
 const App: React.FC = () => {
     const [jobDescription, setJobDescription] = useState('');
+    const [userSkills, setUserSkills] = useState('');
     const [coverLetter, setCoverLetter] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isCopied, setIsCopied] = useState(false);
 
     const handleGenerate = useCallback(async () => {
-        if (!jobDescription) {
-            setError('Please paste the job description.');
+        if (!jobDescription || !userSkills) {
+            setError('Please provide both the job description and your key skills.');
             return;
         }
 
@@ -20,14 +21,14 @@ const App: React.FC = () => {
         setCoverLetter('');
 
         try {
-            const letter = await generateCoverLetter(jobDescription);
+            const letter = await generateCoverLetter(jobDescription, userSkills);
             setCoverLetter(letter);
         } catch (e: any) {
             setError(`Failed to generate cover letter. Error: ${e.message}`);
         } finally {
             setIsLoading(false);
         }
-    }, [jobDescription]);
+    }, [jobDescription, userSkills]);
 
     const handleCopy = useCallback(() => {
         if (coverLetter) {
@@ -39,6 +40,7 @@ const App: React.FC = () => {
     
     const handleReset = useCallback(() => {
         setJobDescription('');
+        setUserSkills('');
         setCoverLetter('');
         setError(null);
         setIsCopied(false);
@@ -52,7 +54,7 @@ const App: React.FC = () => {
                         AI Cover Letter Generator <span className="text-blue-500">for Upwork</span>
                     </h1>
                     <p className="mt-4 text-lg text-gray-400 max-w-3xl mx-auto">
-                        Paste the job details and get a professional cover letter in seconds.
+                        Paste the job details and your key skills to get a professional cover letter in seconds.
                     </p>
                 </header>
 
@@ -68,15 +70,29 @@ const App: React.FC = () => {
                                 value={jobDescription}
                                 onChange={(e) => setJobDescription(e.target.value)}
                                 placeholder="Paste the full job description here..."
-                                className="w-full h-96 bg-gray-900 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 resize-none"
+                                className="w-full h-80 bg-gray-900 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 resize-none"
                                 disabled={isLoading}
                             />
                         </div>
                         
+                        <div>
+                            <label htmlFor="user-skills" className="block text-sm font-medium text-gray-300 mb-2">
+                                Your Key Skills & Experience (one per line)
+                            </label>
+                            <textarea
+                                id="user-skills"
+                                value={userSkills}
+                                onChange={(e) => setUserSkills(e.target.value)}
+                                placeholder="e.g.,&#10;- 5+ years experience in React & TypeScript&#10;- Expert in building scalable design systems&#10;- Proven track record of delivering high-quality Webflow sites"
+                                className="w-full h-48 bg-gray-900 border border-gray-600 rounded-md p-3 text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 resize-none"
+                                disabled={isLoading}
+                            />
+                        </div>
+
                         <div className="flex flex-col sm:flex-row gap-4 mt-auto">
                              <button
                                 onClick={handleGenerate}
-                                disabled={isLoading || !jobDescription}
+                                disabled={isLoading || !jobDescription || !userSkills}
                                 className="w-full flex items-center justify-center gap-2 px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-blue-500 transition-all duration-300"
                             >
                                 {isLoading ? (
@@ -119,7 +135,7 @@ const App: React.FC = () => {
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
                                 <SparklesIcon className="w-12 h-12 text-blue-500 animate-pulse" />
-                                <p className="mt-4 text-lg">Crafting your proposal...</p>
+                                <p className="mt-4 text-lg">Crafting your personalized proposal...</p>
                                 <p className="text-sm">This may take a moment.</p>
                             </div>
                         ) : error ? (
